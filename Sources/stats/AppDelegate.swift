@@ -4,10 +4,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     let cpuMonitor = CPUUsage()
     let ramMonitor = RAMUsage()
+    let gpuMonitor = GPUUsage()
     var timer: Timer?
     var appMemoryItem: NSMenuItem?
     var wiredMemoryItem: NSMenuItem?
     var compressedMemoryItem: NSMenuItem?
+    var gpuUsageItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status item in the menu bar
@@ -40,6 +42,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        gpuUsageItem = NSMenuItem(title: "GPU Usage: --", action: nil, keyEquivalent: "")
+        menu.addItem(gpuUsageItem!)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         let aboutItem = NSMenuItem(title: "About Stats Monitor", action: #selector(about), keyEquivalent: "")
         menu.addItem(aboutItem)
         
@@ -54,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func about() {
         let alert = NSAlert()
         alert.messageText = "Stats Monitor"
-        alert.informativeText = "A native macOS system monitor showing CPU and RAM usage."
+        alert.informativeText = "A native macOS system monitor showing CPU, RAM, and GPU usage."
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
@@ -64,12 +71,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initial samples
         _ = cpuMonitor.getUsage()
         _ = ramMonitor.getUsage()
+        _ = gpuMonitor.getUsage()
         
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
             let cpu = self.cpuMonitor.getUsage() ?? 0.0
             let ram = self.ramMonitor.getUsage()
+            let gpu = self.gpuMonitor.getUsage()
             
             DispatchQueue.main.async {
                 if let button = self.statusItem?.button {
@@ -77,30 +86,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let cpuStr = String(format: "C:%3.0f%% ", cpu)
                     
                     var ramStr = ""
-                    if let ram = ram {
-                        let formattedUsed = self.ramMonitor.formatBytes(ram.used)
+                    if let ramValue = ram {
+                        let formattedUsed = self.ramMonitor.formatBytes(ramValue.used)
                         ramStr = String(format: "R:%6s", (formattedUsed as NSString).utf8String!)
                         
-                        // Update tooltip with breakdown
-                        let appStr = self.ramMonitor.formatBytes(ram.app)
-                        let wiredStr = self.ramMonitor.formatBytes(ram.wired)
-                        let compressedStr = self.ramMonitor.formatBytes(ram.compressed)
-                        
-                        button.toolTip = """
-                        Memory Usage:
-                        App Memory: \(appStr)
-                        Wired Memory: \(wiredStr)
-                        Compressed: \(compressedStr)
-                        Total Used: \(formattedUsed)
-                        """
-                        
                         // Update menu items
-                        self.appMemoryItem?.title = "App Memory: \(appStr)"
-                        self.wiredMemoryItem?.title = "Wired Memory: \(wiredStr)"
-                        self.compressedMemoryItem?.title = "Compressed: \(compressedStr)"
+                        self.appMemoryItem?.title = "App Memory: \(self.ramMonitor.formatBytes(ramValue.app))"
+                        self.wiredMemoryItem?.title = "Wired Memory: \(self.ramMonitor.formatBytes(ramValue.wired))"
+                        self.compressedMemoryItem?.title = "Compressed: \(self.ramMonitor.formatBytes(ramValue.compressed))"
                     }
+
+                    var gpuStr = ""
+                    if let gpuValue = gpu {
+                        gpuStr = String(format: " G:%2.0f%%", gpuValue.device)
+                        self.gpuUsageItem?.title = String(format: "GPU Usage: %.0f%% (R:%.0f%% T:%.0f%%)", gpuValue.device, gpuValue.renderer, gpuValue.tiler)
+                    }
+
+                    button.title = "\(cpuStr)\(ramStr)\(gpuStr)"
+
+                    // Update tooltip with all stats
+                    let ramInfo = ram.map {
+                        """
+                        \nMemory Usage:
+                        App Memory: \(self.ramMonitor.formatBytes($0.app))
+                        Wired Memory: \(self.ramMonitor.formatBytes($0.wired))
+                        Compressed: \(self.ramMonitor.formatBytes($0.compressed))
+                        Total Used: \(self.ramMonitor.formatBytes($0.used))
+                        """
+                    } ?? ""
                     
-                    button.title = "\(cpuStr)\(ramStr)"
+                    let gpuInfo = gpu.map {
+                        """
+                        \nGPU Usage:
+                        Device: \(String(format: "%.0f%%", $0.device))
+                        Renderer: \(String(format: "%.0f%%", $0.renderer))
+                        Tiler: \(String(format: "%.0f%%", $0.tiler))
+                        """
+                    } ?? ""
+                    
+                    button.toolTip = "CPU Usage: \(String(format: "%.1f%%", cpu))\(ramInfo)\(gpuInfo)"
                 }
             }
         }

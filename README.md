@@ -8,7 +8,8 @@ A lightweight macOS menu bar utility that provides real-time monitoring of syste
 ## Features
 
 - **CPU Monitoring**: Displays real-time CPU load percentage in the menu bar.
-- **RAM Monitoring**: Displays current memory usage.
+- **RAM Monitoring**: Displays current memory usage (App, Wired, Compressed).
+- **GPU Monitoring**: Displays real-time GPU utilization.
 - **Native Integration**: Built with Swift and AppKit for a native macOS feel.
 - **Auto-start support**: Includes a script to easily configure the app to run on system startup.
 
@@ -59,6 +60,7 @@ The project is structured as a standard Swift Package:
 - `Sources/stats/AppDelegate.swift`: Manages the menu bar icon and UI updates.
 - `Sources/stats/CPUUsage.swift`: Logic for fetching CPU statistics.
 - `Sources/stats/RAMUsage.swift`: Logic for fetching RAM statistics.
+- `Sources/stats/GPUUsage.swift`: Logic for fetching GPU statistics.
 
 ## License
 
