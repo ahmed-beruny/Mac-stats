@@ -1,8 +1,19 @@
 import Foundation
 import MachO
 
+struct RAMStats {
+    let app: Double
+    let wired: Double
+    let compressed: Double
+    let total: Double
+    
+    var used: Double {
+        return app + wired + compressed
+    }
+}
+
 class RAMUsage {
-    func getUsage() -> (used: Double, total: Double)? {
+    func getUsage() -> RAMStats? {
         var hostPort = mach_host_self()
         var hostSize = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size)
         var vmStats = vm_statistics64()
@@ -15,17 +26,26 @@ class RAMUsage {
         
         guard result == KERN_SUCCESS else { return nil }
         
-        let pageSize = UInt64(vm_kernel_page_size)
+        let pageSize = Double(vm_kernel_page_size)
         
-        // Memory usage categories
-        let active = UInt64(vmStats.active_count) * pageSize
-        let wired = UInt64(vmStats.wire_count) * pageSize
-        let compressed = UInt64(vmStats.compressor_page_count) * pageSize
+        // Activity Monitor formula: 
+        // App Memory = Internal - Purgeable
+        // Used = App Memory + Wired + Compressed
         
-        let usedMemory = Double(active + wired + compressed)
+        let internalPages = Double(vmStats.internal_page_count) * pageSize
+        let purgeablePages = Double(vmStats.purgeable_count) * pageSize
+        let wiredPages = Double(vmStats.wire_count) * pageSize
+        let compressedPages = Double(vmStats.compressor_page_count) * pageSize
+        
+        let appMemory = internalPages - purgeablePages
         let totalMemory = Double(ProcessInfo.processInfo.physicalMemory)
         
-        return (usedMemory, totalMemory)
+        return RAMStats(
+            app: appMemory,
+            wired: wiredPages,
+            compressed: compressedPages,
+            total: totalMemory
+        )
     }
     
     func formatBytes(_ bytes: Double) -> String {
@@ -33,3 +53,4 @@ class RAMUsage {
         return String(format: "%.1fGB", gb)
     }
 }
+

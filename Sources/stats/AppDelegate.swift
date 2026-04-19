@@ -5,6 +5,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let cpuMonitor = CPUUsage()
     let ramMonitor = RAMUsage()
     var timer: Timer?
+    var appMemoryItem: NSMenuItem?
+    var wiredMemoryItem: NSMenuItem?
+    var compressedMemoryItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status item in the menu bar
@@ -25,6 +28,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func setupMenu() {
         let menu = NSMenu()
+        
+        appMemoryItem = NSMenuItem(title: "App Memory: --", action: nil, keyEquivalent: "")
+        menu.addItem(appMemoryItem!)
+        
+        wiredMemoryItem = NSMenuItem(title: "Wired Memory: --", action: nil, keyEquivalent: "")
+        menu.addItem(wiredMemoryItem!)
+        
+        compressedMemoryItem = NSMenuItem(title: "Compressed: --", action: nil, keyEquivalent: "")
+        menu.addItem(compressedMemoryItem!)
+        
+        menu.addItem(NSMenuItem.separator())
         
         let aboutItem = NSMenuItem(title: "About Stats Monitor", action: #selector(about), keyEquivalent: "")
         menu.addItem(aboutItem)
@@ -64,9 +78,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     
                     var ramStr = ""
                     if let ram = ram {
-                        // Pad to fixed width (e.g., " 4.2GB")
-                        let formattedRAM = self.ramMonitor.formatBytes(ram.used)
-                        ramStr = String(format: "R:%6s", (formattedRAM as NSString).utf8String!)
+                        let formattedUsed = self.ramMonitor.formatBytes(ram.used)
+                        ramStr = String(format: "R:%6s", (formattedUsed as NSString).utf8String!)
+                        
+                        // Update tooltip with breakdown
+                        let appStr = self.ramMonitor.formatBytes(ram.app)
+                        let wiredStr = self.ramMonitor.formatBytes(ram.wired)
+                        let compressedStr = self.ramMonitor.formatBytes(ram.compressed)
+                        
+                        button.toolTip = """
+                        Memory Usage:
+                        App Memory: \(appStr)
+                        Wired Memory: \(wiredStr)
+                        Compressed: \(compressedStr)
+                        Total Used: \(formattedUsed)
+                        """
+                        
+                        // Update menu items
+                        self.appMemoryItem?.title = "App Memory: \(appStr)"
+                        self.wiredMemoryItem?.title = "Wired Memory: \(wiredStr)"
+                        self.compressedMemoryItem?.title = "Compressed: \(compressedStr)"
                     }
                     
                     button.title = "\(cpuStr)\(ramStr)"
@@ -77,3 +108,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         RunLoop.current.add(timer!, forMode: .common)
     }
 }
+
