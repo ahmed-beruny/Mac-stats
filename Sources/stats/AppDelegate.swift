@@ -5,11 +5,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let cpuMonitor = CPUUsage()
     let ramMonitor = RAMUsage()
     let gpuMonitor = GPUUsage()
+    let networkMonitor = NetworkUsage()
     var timer: Timer?
     var appMemoryItem: NSMenuItem?
     var wiredMemoryItem: NSMenuItem?
     var compressedMemoryItem: NSMenuItem?
     var gpuUsageItem: NSMenuItem?
+    var downloadSpeedItem: NSMenuItem?
+    var uploadSpeedItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the status item in the menu bar
@@ -47,6 +50,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        downloadSpeedItem = NSMenuItem(title: "Download: --", action: nil, keyEquivalent: "")
+        menu.addItem(downloadSpeedItem!)
+        
+        uploadSpeedItem = NSMenuItem(title: "Upload: --", action: nil, keyEquivalent: "")
+        menu.addItem(uploadSpeedItem!)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         let aboutItem = NSMenuItem(title: "About Stats Monitor", action: #selector(about), keyEquivalent: "")
         menu.addItem(aboutItem)
         
@@ -61,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func about() {
         let alert = NSAlert()
         alert.messageText = "Stats Monitor"
-        alert.informativeText = "A native macOS system monitor showing CPU, RAM, and GPU usage."
+        alert.informativeText = "A native macOS system monitor showing CPU, RAM, GPU usage, and Network activity."
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
@@ -79,11 +90,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let cpu = self.cpuMonitor.getUsage() ?? 0.0
             let ram = self.ramMonitor.getUsage()
             let gpu = self.gpuMonitor.getUsage()
+            let network = self.networkMonitor.getUsage()
             
             DispatchQueue.main.async {
                 if let button = self.statusItem?.button {
                     // Fixed-width formatting for consistency
-                    let cpuStr = String(format: "C:%3.0f%% ", cpu)
+                    let cpuStr = String(format: "C:%3.0f%%", cpu)
                     
                     var ramStr = ""
                     if let ramValue = ram {
@@ -98,11 +110,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                     var gpuStr = ""
                     if let gpuValue = gpu {
-                        gpuStr = String(format: " G:%2.0f%%", gpuValue.device)
+                        gpuStr = String(format: "G:%2.0f%%", gpuValue.device)
                         self.gpuUsageItem?.title = String(format: "GPU Usage: %.0f%% (R:%.0f%% T:%.0f%%)", gpuValue.device, gpuValue.renderer, gpuValue.tiler)
                     }
 
-                    button.title = "\(cpuStr)\(ramStr)\(gpuStr)"
+                    var netStr = ""
+                    if let netValue = network {
+                        let downFormatted = self.networkMonitor.formatSpeed(netValue.downloadSpeed)
+                        let upFormatted = self.networkMonitor.formatSpeed(netValue.uploadSpeed)
+                        netStr = "↓\(downFormatted)"
+                        
+                        self.downloadSpeedItem?.title = "Download Speed: \(downFormatted)"
+                        self.uploadSpeedItem?.title = "Upload Speed: \(upFormatted)"
+                    }
+
+                    button.title = "\(netStr) \(cpuStr) \(gpuStr) \(ramStr)"
 
                     // Update tooltip with all stats
                     let ramInfo = ram.map {
@@ -124,7 +146,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         """
                     } ?? ""
                     
-                    button.toolTip = "CPU Usage: \(String(format: "%.1f%%", cpu))\(ramInfo)\(gpuInfo)"
+                    let netInfo = network.map {
+                        """
+                        \nNetwork Activity:
+                        Download: \(self.networkMonitor.formatSpeed($0.downloadSpeed))
+                        Upload: \(self.networkMonitor.formatSpeed($0.uploadSpeed))
+                        """
+                    } ?? ""
+                    
+                    button.toolTip = "CPU Usage: \(String(format: "%.1f%%", cpu))\(ramInfo)\(gpuInfo)\(netInfo)"
                 }
             }
         }
