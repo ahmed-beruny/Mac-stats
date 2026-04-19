@@ -3,6 +3,7 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     let cpuMonitor = CPUUsage()
+    let ramMonitor = RAMUsage()
     var timer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -10,7 +11,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem?.button {
-            button.title = "CPU: --%"
+            // Use monospaced digit font to prevent text shaking
+            button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+            button.title = "Stats: --"
         }
         
         setupMenu()
@@ -23,7 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func setupMenu() {
         let menu = NSMenu()
         
-        let aboutItem = NSMenuItem(title: "About CPU Monitor", action: #selector(about), keyEquivalent: "")
+        let aboutItem = NSMenuItem(title: "About Stats Monitor", action: #selector(about), keyEquivalent: "")
         menu.addItem(aboutItem)
         
         menu.addItem(NSMenuItem.separator())
@@ -36,28 +39,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func about() {
         let alert = NSAlert()
-        alert.messageText = "CPU Monitor"
-        alert.informativeText = "A simple native macOS CPU monitor written in Swift."
+        alert.messageText = "Stats Monitor"
+        alert.informativeText = "A native macOS system monitor showing CPU and RAM usage."
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
 
     func startMonitoring() {
-        // Initial sample
+        // Initial samples
         _ = cpuMonitor.getUsage()
+        _ = ramMonitor.getUsage()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            if let usage = self.cpuMonitor.getUsage() {
-                DispatchQueue.main.async {
-                    if let button = self.statusItem?.button {
-                        button.title = String(format: "CPU: %.1f%%", usage)
+            
+            let cpu = self.cpuMonitor.getUsage() ?? 0.0
+            let ram = self.ramMonitor.getUsage()
+            
+            DispatchQueue.main.async {
+                if let button = self.statusItem?.button {
+                    // Fixed-width formatting for consistency
+                    let cpuStr = String(format: "C:%3.0f%% ", cpu)
+                    
+                    var ramStr = ""
+                    if let ram = ram {
+                        // Pad to fixed width (e.g., " 4.2GB")
+                        let formattedRAM = self.ramMonitor.formatBytes(ram.used)
+                        ramStr = String(format: "R:%6s", (formattedRAM as NSString).utf8String!)
                     }
+                    
+                    button.title = "\(cpuStr)\(ramStr)"
                 }
             }
         }
-        timer?.tolerance = 0.5
+        timer?.tolerance = 0.1
         RunLoop.current.add(timer!, forMode: .common)
     }
 }
