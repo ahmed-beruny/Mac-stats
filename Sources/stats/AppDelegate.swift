@@ -61,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         _ = cpuMonitor.getUsage()
         _ = gpuMonitor.getUsage()
         
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
             let cpu = self.cpuMonitor.getUsage() ?? 0.0
