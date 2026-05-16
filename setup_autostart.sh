@@ -35,7 +35,7 @@ cat <<EOF > "$PLIST_PATH"
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <true/>
+    <false/>
     <key>StandardOutPath</key>
     <string>/tmp/$PLIST_LABEL.stdout.log</string>
     <key>StandardErrorPath</key>
