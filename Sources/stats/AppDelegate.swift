@@ -2,20 +2,20 @@ import AppKit
 
 enum MetricKey: String, CaseIterable {
     case cpuTemp = "showCPUTemp"
-    case network = "showNetwork"
     case ssd = "showSSD"
     case cpuUsage = "showCPUUsage"
     case gpuUsage = "showGPUUsage"
     case ram = "showRAM"
+    case network = "showNetwork"
     
     var title: String {
         switch self {
         case .cpuTemp: return "CPU Temperature"
-        case .network: return "Network Speed"
         case .ssd: return "SSD Usage"
         case .cpuUsage: return "CPU Usage"
         case .gpuUsage: return "GPU Usage"
         case .ram: return "Memory Usage"
+        case .network: return "Network Speed"
         }
     }
 }
@@ -110,6 +110,7 @@ class MenuItemToggleView: NSView {
     
     init(title: String, isOn: Bool, onToggle: @escaping (Bool) -> Void) {
         super.init(frame: NSRect(x: 0, y: 0, width: 200, height: 32))
+        self.autoresizingMask = .width
         self.onToggle = onToggle
         
         label.stringValue = title
