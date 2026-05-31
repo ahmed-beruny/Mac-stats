@@ -31,13 +31,13 @@ class MetricView: NSStackView {
         self.spacing = 0
         
         topLabel.stringValue = title
-        topLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
+        topLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .semibold)
         topLabel.textColor = .labelColor
         topLabel.alignment = isLeftAligned ? .left : .center
         topLabel.translatesAutoresizingMaskIntoConstraints = false
         
         bottomLabel.stringValue = "--"
-        bottomLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .semibold)
+        bottomLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .semibold)
         bottomLabel.textColor = .labelColor
         bottomLabel.alignment = isLeftAligned ? .left : .center
         bottomLabel.translatesAutoresizingMaskIntoConstraints = false
